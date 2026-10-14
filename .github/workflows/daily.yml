@@ -1,0 +1,49 @@
+name: daily-update
+
+on:
+  schedule:
+    - cron: "0 21 * * *"  # 毎日 06:00 JST
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: daily-update
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: 取得・AI判定・サイト生成
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MAX_ANALYSES_PER_RUN: "60"
+        run: python pipeline.py 14
+      - name: 案件データを保存
+        run: |
+          git config user.name "nyusatsu-alert-bot"
+          git config user.email "nyusatsu-alert-bot@users.noreply.github.com"
+          git add data/tenders.json
+          git diff --cached --quiet || git commit -m "data: $(date -u +%F) daily update"
+          git push
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
