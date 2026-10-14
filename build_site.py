@@ -75,15 +75,23 @@ def signup_button(big: bool = False) -> str:
     return f'<span class="btn off">{label}（準備中）</span>'
 
 
-def deadline_chip(a: dict, today: dt.date) -> str:
+def parse_deadline(a: dict | None) -> dt.date | None:
+    """AIが補足付きで返した場合も先頭の YYYY-MM-DD を読む。"""
     if not a or not a.get("deadline"):
-        return '<span class="chip">締切 要確認</span>'
+        return None
     try:
-        days = (dt.date.fromisoformat(a["deadline"]) - today).days
+        return dt.date.fromisoformat(a["deadline"][:10])
     except ValueError:
-        return f'<span class="chip">締切 {e(a["deadline"])}</span>'
+        return None
+
+
+def deadline_chip(a: dict, today: dt.date) -> str:
+    d = parse_deadline(a)
+    if d is None:
+        return '<span class="chip">締切 要確認</span>'
+    days = (d - today).days
     cls = " urgent" if days <= 7 else ""
-    return f'<span class="chip{cls}">締切 {a["deadline"][5:].replace("-", "/")}（あと{days}日）</span>'
+    return f'<span class="chip{cls}">締切 {d.month:02d}/{d.day:02d}（あと{days}日）</span>'
 
 
 def score_box(a: dict | None) -> str:
@@ -95,11 +103,9 @@ def score_box(a: dict | None) -> str:
 
 
 def is_open(rec: dict, a: dict | None, today: dt.date) -> bool:
-    if a and a.get("deadline"):
-        try:
-            return dt.date.fromisoformat(a["deadline"]) >= today
-        except ValueError:
-            pass
+    d = parse_deadline(a)
+    if d is not None:
+        return d >= today
     issued = dt.date.fromisoformat(rec["CftIssueDate"][:10])
     return (today - issued).days <= OPEN_DAYS_WITHOUT_DEADLINE
 

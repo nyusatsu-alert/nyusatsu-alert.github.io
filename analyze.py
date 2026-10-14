@@ -23,6 +23,7 @@ SYSTEM = """あなたは官公庁入札に詳しいアナリストです。
   「参加者確認公募」など特定事業者を想定した方式かを考慮する。relevant=false なら 0。
 - 公告文に書かれていない事項は推測せず null にし、不明点は cautions に書く。
 - evidence には根拠となる公告文の箇所を短く原文のまま引用する。
+- deadline は参加申込または提出の最も早い期限を YYYY-MM-DD の形式だけで書く（時刻・補足は cautions へ）。
 - summary・fit_reason は読み手向けに平易な日本語で、それぞれ2文以内。"""
 
 
@@ -40,7 +41,7 @@ class Analysis(BaseModel):
     evidence: List[str]
 
 
-def analyze(client: anthropic.Anthropic, item: dict, vertical: dict) -> Analysis | None:
+def analyze(client: anthropic.Anthropic, item: dict, vertical: dict) -> tuple[Analysis | None, anthropic.types.Usage]:
     doc = (
         f"件名: {item['ProjectName']}\n機関: {item['OrganizationName']}\n"
         f"公告日: {item['CftIssueDate'][:10]}\nカテゴリ: {item['Category'] or '不明'}\n"
@@ -56,5 +57,5 @@ def analyze(client: anthropic.Anthropic, item: dict, vertical: dict) -> Analysis
         output_format=Analysis,
     )
     if response.stop_reason == "refusal":
-        return None
-    return response.parsed_output
+        return None, response.usage
+    return response.parsed_output, response.usage
