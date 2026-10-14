@@ -3,13 +3,15 @@
 官公需情報ポータルサイト（中小企業庁）の検索APIから官公庁の入札・公募案件を集め、
 AI（Claude）が公告文を読んで「小〜中規模の開発会社が受注できそうか」を判定し、購読者向けアラートを生成する。
 
-## パイプライン
-1. `python3 fetch.py 14` … 直近14日の案件を取得 → `data/raw_YYYY-MM-DD.json`
-   - 全文検索(Query)で広く取得し、件名でローカルに絞り込む（Project_Name/Category はデータ未整備で取りこぼすため）
-   - 1回1,000件の上限を超えた場合は期間を二分割して取り直す
-2. `python analyze.py data/raw_YYYY-MM-DD.json` … Claude APIで判定 → `data/analyzed_YYYY-MM-DD.json`
-   - Python 3.10+、`pip install anthropic pydantic`、`ANTHROPIC_API_KEY` が必要
-3. `python3 render.py data/analyzed_YYYY-MM-DD.json <取得件数>` … `reports/alert_YYYY-MM-DD.html`
+## 構成
+- `verticals.py` … 配信する業種の定義（検索語・件名の絞り込み条件・想定読者）。業種追加はここだけ。
+- `fetch.py` … 官公需APIから業種ごとに取得（全文検索→件名で絞り込み、1,000件超は期間を分割）
+- `analyze.py` … Claude APIで判定（要約・予算・締切・参加資格・適合度・根拠の引用）
+- `pipeline.py` … 毎日の処理。取得→`data/tenders.json`に蓄積→未判定分をAI判定（1回60件まで）→サイト生成
+- `build_site.py` … `site/` に公開用の静的サイトを生成（トップ・業種別一覧・案件ごとのページ・sitemap）
+- `.github/workflows/daily.yml` … 毎日06:00(JST)に pipeline を実行し GitHub Pages へ公開
+
+ローカル実行: `python3 pipeline.py 14`（APIキー未設定ならAI判定を飛ばす）
 
 ## 利用条件
 出典（官公需情報ポータルサイト）を明記すること。APIへの負荷を抑えるため、リクエスト間に1秒の間隔を置いている。
