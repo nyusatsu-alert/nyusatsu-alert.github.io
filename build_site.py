@@ -14,7 +14,7 @@ ROOT = Path(__file__).parent
 OUT = ROOT / "site"
 SITE_NAME = "入札AIアラート"
 BASE_URL = "https://nyusatsu-alert.github.io"
-FORM_URL = ""  # 無料登録フォーム（Googleフォーム）のURL。未設定の間は「準備中」を表示
+FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSf3HLvm4fPJyneqq6zFWZP6EnOdQ_HS6YNBpFzUnZHJ6OXbwQ/viewform"  # 無料登録フォーム（Googleフォーム）
 OPEN_DAYS_WITHOUT_DEADLINE = 21  # 締切不明の案件を掲載し続ける日数
 e = html.escape
 
