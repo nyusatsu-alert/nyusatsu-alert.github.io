@@ -1,0 +1,11 @@
+[
+ {
+  "date": "2026-10-14",
+  "analyses": 60,
+  "input": 291010,
+  "cache_write": 2402,
+  "cache_read": 69738,
+  "output": 46399,
+  "usd_estimate": 2.118
+ }
+]
