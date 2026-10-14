@@ -14,6 +14,7 @@ ROOT = Path(__file__).parent
 OUT = ROOT / "site"
 SITE_NAME = "入札AIアラート"
 BASE_URL = "https://nyusatsu-alert.github.io"
+GA_ID = "G-DBLWR9T005"  # Googleアナリティクスの測定ID
 FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSf3HLvm4fPJyneqq6zFWZP6EnOdQ_HS6YNBpFzUnZHJ6OXbwQ/viewform"  # 無料登録フォーム（Googleフォーム）
 OPEN_DAYS_WITHOUT_DEADLINE = 21  # 締切不明の案件を掲載し続ける日数
 e = html.escape
@@ -60,7 +61,9 @@ def page(title: str, body: str, desc: str, path: str, noindex: bool = False) -> 
     return f"""<!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{e(title)}</title><meta name="description" content="{e(desc)}">{robots}
-<link rel="canonical" href="{BASE_URL}/{path}"><style>{CSS}</style></head><body><div class="wrap">
+<link rel="canonical" href="{BASE_URL}/{path}"><style>{CSS}</style>
+<script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){{dataLayer.push(arguments);}}gtag('js',new Date());gtag('config','{GA_ID}');</script></head><body><div class="wrap">
 <header class="top"><a class="logo" href="/">{SITE_NAME}</a>{signup_button()}</header>
 {body}
 <footer>出典：<a href="https://www.kkj.go.jp/">官公需情報ポータルサイト（中小企業庁）</a>の検索APIで取得した公告をAIで要約・判定しています。
