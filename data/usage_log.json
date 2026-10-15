@@ -25,5 +25,14 @@
   "cache_read": 69848,
   "output": 47385,
   "usd_estimate": 2.3425
+ },
+ {
+  "date": "2026-10-15",
+  "analyses": 45,
+  "input": 210085,
+  "cache_write": 2402,
+  "cache_read": 51608,
+  "output": 32837,
+  "usd_estimate": 1.5194
  }
 ]
