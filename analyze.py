@@ -10,6 +10,8 @@ import anthropic
 from pydantic import BaseModel
 
 MODEL = "claude-opus-5-5"
+# 料金（USD / 100万トークン）: 入力, キャッシュ書き込み, キャッシュ読み込み, 出力
+PRICES = {"claude-opus-5-5": (4, 5, 0.2, 20), "claude-sonnet-5-5": (2, 2.5, 0.2, 10)}
 
 SYSTEM = """あなたは官公庁入札に詳しいアナリストです。
 読み手は「{reader}」の営業担当です。
@@ -23,7 +25,10 @@ SYSTEM = """あなたは官公庁入札に詳しいアナリストです。
   「参加者確認公募」など特定事業者を想定した方式かを考慮する。relevant=false なら 0。
 - 公告文に書かれていない事項は推測せず null にし、不明点は cautions に書く。
 - evidence には根拠となる公告文の箇所を短く原文のまま引用する。
-- deadline は参加申込または提出の最も早い期限を YYYY-MM-DD の形式だけで書く（時刻・補足は cautions へ）。
+- deadline は「参加に必ず必要な手続きのうち最も早い期限」を YYYY-MM-DD の形式だけで書く。
+  参加申請書・競争参加資格確認書類・仕様書の受領（参加の必須条件の場合）・提案書・入札書の提出期限が対象。
+  任意参加の説明会の申込期限、質問の受付期限、意見招請の期限は deadline にしない（cautions に書く）。
+  時刻や補足は cautions へ書く。
 - summary・fit_reason は読み手向けに平易な日本語で、それぞれ2文以内。"""
 
 
@@ -41,14 +46,15 @@ class Analysis(BaseModel):
     evidence: List[str]
 
 
-def analyze(client: anthropic.Anthropic, item: dict, vertical: dict) -> tuple[Analysis | None, anthropic.types.Usage]:
+def analyze(client: anthropic.Anthropic, item: dict, vertical: dict,
+            model: str = MODEL) -> tuple[Analysis | None, anthropic.types.Usage]:
     doc = (
         f"件名: {item['ProjectName']}\n機関: {item['OrganizationName']}\n"
         f"公告日: {item['CftIssueDate'][:10]}\nカテゴリ: {item['Category'] or '不明'}\n"
         f"公告文:\n{item.get('ProjectDescription', '')[:12000]}"
     )
     response = client.messages.parse(
-        model=MODEL,
+        model=model,
         max_tokens=16000,
         output_config={"effort": "low"},  # 定型の抽出・分類タスク
         system=[{"type": "text", "text": SYSTEM.format(reader=vertical["reader"]),
@@ -59,3 +65,9 @@ def analyze(client: anthropic.Anthropic, item: dict, vertical: dict) -> tuple[An
     if response.stop_reason == "refusal":
         return None, response.usage
     return response.parsed_output, response.usage
+
+
+def cost_usd(model: str, tokens: dict) -> float:
+    p_in, p_cw, p_cr, p_out = PRICES[model]
+    return (tokens["input"] * p_in + tokens["cache_write"] * p_cw + tokens["cache_read"] * p_cr
+            + tokens["output"] * p_out) / 1_000_000

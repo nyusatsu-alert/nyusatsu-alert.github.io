@@ -76,9 +76,9 @@ def analyze_pending(store: dict) -> int:
 
 def log_usage(done: int, tokens: dict) -> None:
     """判定件数・トークン数・推定費用を data/usage_log.json に追記する（PDCAの費用確認用）。"""
-    # Claude Opus 5.5 の料金（USD / 100万トークン）。キャッシュ書き込みは入力の1.25倍
-    usd = (tokens["input"] * 4 + tokens["cache_write"] * 5 + tokens["cache_read"] * 0.2
-           + tokens["output"] * 20) / 1_000_000
+    from analyze import MODEL, cost_usd
+
+    usd = cost_usd(MODEL, tokens)
     path = STORE.with_name("usage_log.json")
     log = json.loads(path.read_text()) if path.exists() else []
     log.append({"date": dt.date.today().isoformat(), "analyses": done, **tokens, "usd_estimate": round(usd, 4)})

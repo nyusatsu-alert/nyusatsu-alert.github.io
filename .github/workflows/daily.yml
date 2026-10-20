@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "0 21 * * *"  # 毎日 06:00 JST
   workflow_dispatch:
+    inputs:
+      task:
+        description: "daily = 通常の更新 / rejudge = 高適合案件の再判定とモデル比較"
+        default: daily
+        type: choice
+        options: [daily, rejudge]
 
 permissions:
   contents: write
@@ -27,12 +33,17 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MAX_ANALYSES_PER_RUN: "60"
-        run: python pipeline.py 14
+        run: |
+          if [ "${{ inputs.task }}" = "rejudge" ]; then
+            python rejudge_compare.py claude-sonnet-5-5 30 20
+          else
+            python pipeline.py 14
+          fi
       - name: 案件データを保存
         run: |
           git config user.name "nyusatsu-alert-bot"
           git config user.email "nyusatsu-alert-bot@users.noreply.github.com"
-          git add data/tenders.json data/usage_log.json
+          git add data/tenders.json data/usage_log.json data/model_compare_*.json 2>/dev/null || git add data/tenders.json data/usage_log.json
           git diff --cached --quiet || git commit -m "data: $(date -u +%F) daily update"
           git push
       - uses: actions/upload-pages-artifact@v4
