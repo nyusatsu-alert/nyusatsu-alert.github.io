@@ -9,7 +9,7 @@ from typing import List, Optional
 import anthropic
 from pydantic import BaseModel
 
-MODEL = "claude-opus-5-5"
+MODEL = "claude-sonnet-5-5"  # 2026-10-20 比較テストの結果、Opusとほぼ同等で約半額のため切り替え
 # 料金（USD / 100万トークン）: 入力, キャッシュ書き込み, キャッシュ読み込み, 出力
 PRICES = {"claude-opus-5-5": (4, 5, 0.2, 20), "claude-sonnet-5-5": (2, 2.5, 0.2, 10)}
 

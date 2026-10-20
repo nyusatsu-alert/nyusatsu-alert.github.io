@@ -9,7 +9,7 @@ on:
         description: "daily = 通常の更新 / rejudge = 高適合案件の再判定とモデル比較"
         default: daily
         type: choice
-        options: [daily, rejudge]
+        options: [daily, rejudge, xpost]
 
 permissions:
   contents: write
@@ -35,15 +35,27 @@ jobs:
           MAX_ANALYSES_PER_RUN: "60"
         run: |
           if [ "${{ inputs.task }}" = "rejudge" ]; then
-            python rejudge_compare.py claude-sonnet-5-5 30 20
+            python rejudge_compare.py claude-opus-5-5 30 0
+          elif [ "${{ inputs.task }}" = "xpost" ]; then
+            python build_site.py
           else
             python pipeline.py 14
           fi
+      - name: X投稿（下書き作成／承認済みの投稿）
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+        # 下書きは毎日作る。投稿は手動の xpost 実行時、または自動投稿を有効化（vars.X_AUTO_POST=1）した後のみ
+        run: |
+          if [ "${{ inputs.task }}" != "xpost" ]; then python x_post.py draft; fi
+          if [ "${{ inputs.task }}" = "xpost" ] || [ "${{ vars.X_AUTO_POST }}" = "1" ]; then python x_post.py post; fi
       - name: 案件データを保存
         run: |
           git config user.name "nyusatsu-alert-bot"
           git config user.email "nyusatsu-alert-bot@users.noreply.github.com"
-          git add data/tenders.json data/usage_log.json data/model_compare_*.json 2>/dev/null || git add data/tenders.json data/usage_log.json
+          git add data/
           git diff --cached --quiet || git commit -m "data: $(date -u +%F) daily update"
           git push
       - uses: actions/upload-pages-artifact@v4
