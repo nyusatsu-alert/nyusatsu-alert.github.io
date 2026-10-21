@@ -23,6 +23,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Tokyo  # 日付（締切までの日数・下書きのファイル名）を日本時間で扱う
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
