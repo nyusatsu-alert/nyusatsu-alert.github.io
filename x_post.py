@@ -52,11 +52,17 @@ def clip(text: str, budget: int) -> str:
     return out
 
 
+def md(d: dt.date) -> str:
+    return f"{d.month}/{d.day}({WEEKDAYS[d.weekday()]})"
+
+
 def compose(rec: dict, slug: str, a: dict) -> str:
     d = parse_deadline(a)
+    sub = parse_deadline({"deadline": a.get("submission_deadline")})
     head = f"【{VERTICALS[slug]['name']}向け｜適合度{a['fit_score']}】"
     org = rec["OrganizationName"]
-    deadline = f"締切{d.month}/{d.day}({WEEKDAYS[d.weekday()]})"
+    # 「参加に必須の手続き期限」と「提出期限」が違う日なら両方を書く
+    deadline = (f"参加手続きは{md(d)}まで、提出は{md(sub)}" if sub and sub != d else f"締切{md(d)}")
     budget = f"上限{a['budget_jpy'] / 10000:,.0f}万円。" if a.get("budget_jpy") else ""
     tags = f"\n#入札 #公募 {TAGS[slug]}"
     fixed = f"{head}{org}\n"
@@ -86,16 +92,56 @@ def make_drafts(store: dict, today: dt.date) -> list[dict]:
         if top:
             firsts.append(top)
     ordered = firsts + [c for c in cands if c not in firsts]
+    checker = FactChecker() if os.environ.get("ANTHROPIC_API_KEY") else None
     drafts, used = [], set()
     for _, rec, slug, a in ordered:
         if rec["Key"] in used:
             continue
+        text = compose(rec, slug, a)
+        check = checker.check(rec, text) if checker else {"ok": None, "issues": ["照合未実施（APIキーなし）"]}
+        if check["ok"] is False:
+            print(f"照合NGのため見送り: {rec['ProjectName'][:30]} {check['issues']}", file=sys.stderr)
+            continue
         used.add(rec["Key"])
-        drafts.append({"id": f"{rec['Key']}|{slug}", "text": compose(rec, slug, a),
-                       "source_url": rec["ExternalDocumentURI"], "deadline": a["deadline"][:10]})
+        drafts.append({"id": f"{rec['Key']}|{slug}", "text": text, "source_url": rec["ExternalDocumentURI"],
+                       "deadline": a["deadline"][:10], "fact_check": check})
         if len(drafts) == POSTS_PER_DAY:
             break
     return drafts
+
+
+class FactChecker:
+    """投稿文の事実（機関名・日付・金額・参加条件）が公告原文と合っているかをAIで照合する。"""
+
+    SYSTEM = ("あなたは官公庁入札の公告を確認する校閲者です。投稿文に書かれた事実"
+              "（発注機関、業務内容、日付、金額、参加資格・方式）が公告文と矛盾しないかを確認してください。"
+              "公告文に根拠がない断定や、日付・金額の誤りがあれば ok=false とし、issues に具体的に書いてください。"
+              "適合度の点数やハッシュタグ、要約の言い回しは確認対象外です。")
+
+    def __init__(self) -> None:
+        import anthropic
+        from pydantic import BaseModel
+
+        class Result(BaseModel):
+            ok: bool
+            issues: list[str]
+
+        self.client = anthropic.Anthropic()
+        self.Result = Result
+
+    def check(self, rec: dict, text: str) -> dict:
+        from analyze import MODEL
+
+        doc = f"【投稿文】\n{text}\n\n【公告文】\n{rec.get('ProjectDescription', '')[:12000]}"
+        try:
+            r = self.client.messages.parse(
+                model=MODEL, max_tokens=4000, output_config={"effort": "low"},
+                system=self.SYSTEM, messages=[{"role": "user", "content": doc}], output_format=self.Result)
+        except Exception as e:  # 照合できなかった案件は投稿しない
+            return {"ok": False, "issues": [f"照合エラー: {e}"]}
+        if r.stop_reason == "refusal" or r.parsed_output is None:
+            return {"ok": False, "issues": ["照合できず"]}
+        return r.parsed_output.model_dump()
 
 
 def oauth_header(method: str, url: str) -> str:
@@ -144,6 +190,9 @@ def main(mode: str) -> None:
     today = dt.date.today()
     path = DRAFTS / f"{today.isoformat()}.json"
     if mode == "draft":
+        if path.exists() and any(d.get("tweet_id") for d in json.loads(path.read_text())):
+            print("本日はすでに投稿済みのため、下書きを作り直しません", file=sys.stderr)
+            return
         store = json.loads((DATA / "tenders.json").read_text())
         drafts = make_drafts(store, today)
         DRAFTS.mkdir(exist_ok=True)

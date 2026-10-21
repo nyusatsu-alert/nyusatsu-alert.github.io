@@ -29,6 +29,7 @@ SYSTEM = """あなたは官公庁入札に詳しいアナリストです。
   参加申請書・競争参加資格確認書類・仕様書の受領（参加の必須条件の場合）・提案書・入札書の提出期限が対象。
   任意参加の説明会の申込期限、質問の受付期限、意見招請の期限は deadline にしない（cautions に書く）。
   時刻や補足は cautions へ書く。
+- submission_deadline は提案書または入札書そのものの提出期限（YYYY-MM-DD）。deadline と同じ日なら同じ値、記載がなければ null。
 - summary・fit_reason は読み手向けに平易な日本語で、それぞれ2文以内。"""
 
 
@@ -37,7 +38,8 @@ class Analysis(BaseModel):
     work_type: str  # 例: 調査・分析 / 計画策定支援 / 広報・PR / Web制作・運用 / システム開発・改修
     summary: str
     budget_jpy: Optional[int]  # 上限額・予定価格（税込）。記載なしは null
-    deadline: Optional[str]  # 参加申込/提出期限 YYYY-MM-DD
+    deadline: Optional[str]  # 参加に必須の手続きのうち最も早い期限 YYYY-MM-DD
+    submission_deadline: Optional[str]  # 提案書・入札書の提出期限 YYYY-MM-DD
     method: Optional[str]  # 公募型プロポーザル / 一般競争入札 など
     requirements: List[str]
     fit_score: int
