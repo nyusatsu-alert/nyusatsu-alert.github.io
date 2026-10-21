@@ -18,6 +18,7 @@ import secrets
 import sys
 import time
 import urllib.parse
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -123,7 +124,23 @@ def post_tweet(text: str) -> str:
         return json.loads(r.read())["data"]["id"]
 
 
+def verify() -> None:
+    """投稿せずに認証だけ確認する（自分のアカウント情報を1回読み取る）。"""
+    url = "https://api.x.com/2/users/me"
+    req = urllib.request.Request(url, headers={"Authorization": oauth_header("GET", url)})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            me = json.loads(r.read())["data"]
+        print(f"認証OK: @{me['username']}（{me['name']}）", file=sys.stderr)
+    except urllib.error.HTTPError as e:
+        print(f"認証NG: HTTP {e.code} {e.read().decode()[:300]}", file=sys.stderr)
+        raise SystemExit(1)
+
+
 def main(mode: str) -> None:
+    if mode == "verify":
+        verify()
+        return
     today = dt.date.today()
     path = DRAFTS / f"{today.isoformat()}.json"
     if mode == "draft":

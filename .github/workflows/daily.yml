@@ -9,7 +9,7 @@ on:
         description: "daily = 通常の更新 / rejudge = 高適合案件の再判定とモデル比較"
         default: daily
         type: choice
-        options: [daily, rejudge, xpost]
+        options: [daily, rejudge, xpost, xverify]
 
 permissions:
   contents: write
@@ -38,7 +38,7 @@ jobs:
         run: |
           if [ "${{ inputs.task }}" = "rejudge" ]; then
             python rejudge_compare.py claude-opus-5-5 30 0
-          elif [ "${{ inputs.task }}" = "xpost" ]; then
+          elif [ "${{ inputs.task }}" = "xpost" ] || [ "${{ inputs.task }}" = "xverify" ]; then
             python build_site.py
           else
             python pipeline.py 14
@@ -51,6 +51,7 @@ jobs:
           X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
         # 下書きは毎日作る。投稿は手動の xpost 実行時、または自動投稿を有効化（vars.X_AUTO_POST=1）した後のみ
         run: |
+          if [ "${{ inputs.task }}" = "xverify" ]; then python x_post.py verify; exit 0; fi
           if [ "${{ inputs.task }}" != "xpost" ]; then python x_post.py draft; fi
           if [ "${{ inputs.task }}" = "xpost" ] || [ "${{ vars.X_AUTO_POST }}" = "1" ]; then python x_post.py post; fi
       - name: 案件データを保存
