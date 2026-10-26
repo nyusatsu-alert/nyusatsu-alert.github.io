@@ -208,7 +208,13 @@ def main(mode: str) -> None:
     for d in drafts:
         if d["id"] in posted or d.get("tweet_id"):
             continue
-        d["tweet_id"] = post_tweet(d["text"])
+        try:
+            d["tweet_id"] = post_tweet(d["text"])
+        except urllib.error.HTTPError as e:
+            d["error"] = f"HTTP {e.code} {e.read().decode()[:300]}"
+            print(f"投稿失敗: {d['error']}", file=sys.stderr)
+            path.write_text(json.dumps(drafts, ensure_ascii=False, indent=1))
+            raise SystemExit(1)
         posted.append(d["id"])
         print(f"投稿しました {d['tweet_id']}", file=sys.stderr)
         time.sleep(5)

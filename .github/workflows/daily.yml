@@ -44,6 +44,8 @@ jobs:
             python pipeline.py 14
           fi
       - name: X投稿（下書き作成／承認済みの投稿）
+        # Xの不調でサイト更新・データ保存が止まらないよう、失敗しても次の手順へ進む
+        continue-on-error: true
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           X_API_KEY: ${{ secrets.X_API_KEY }}
