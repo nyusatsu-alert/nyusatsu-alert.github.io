@@ -1,0 +1,33 @@
+[
+ {
+  "id": "c2VhcmNoL3BfcG9ydGFsLzIwMjYvMTAvMjAyNjEwMjZfODA4NjEK|consulting",
+  "text": "【調査・コンサル・企画向け｜適合度72】経済産業省\n九州経済産業局が発注する、公害原因となる金属の排出削減に向けた企業の課題についての調査事業です。提案書と入札書の提出が必要な総合評価落札方式の一般競争入札です。\n締切11/18(水)\n#入札 #公募 #調査業務",
+  "source_url": "https://www.p-portal.go.jp/pps-web-biz/UAA01/OAA0101",
+  "deadline": "2026-11-18",
+  "fact_check": {
+   "ok": true,
+   "issues": []
+  },
+  "error": "HTTP 401 {\n  \"title\": \"Unauthorized\",\n  \"type\": \"about:blank\",\n  \"status\": 401,\n  \"detail\": \"Unauthorized\"\n}"
+ },
+ {
+  "id": "c2VhcmNoL3BfcG9ydGFsLzIwMjYvMTAvMjAyNjEwMjZfODA4OTcK|consulting",
+  "text": "【調査・コンサル・企画向け｜適合度72】経済産業省\n経済産業省（中小企業庁）が発注する、法定経営指導員講習の資料作成と小規模事業者支援に関する調査の業務です。提案書と入札書を併せて提出し、技術点200点と価格点100点で評価される総合評価方式です。\n締切11/16(月)\n#入札 #公募 #調査業務",
+  "source_url": "https://www.p-portal.go.jp/pps-web-biz/UAA01/OAA0101",
+  "deadline": "2026-11-16",
+  "fact_check": {
+   "ok": true,
+   "issues": []
+  }
+ },
+ {
+  "id": "c2VhcmNoL3BfcG9ydGFsLzIwMjYvMTAvMjAyNjEwMDlfODAyMDMK|consulting",
+  "text": "【調査・コンサル・企画向け｜適合度70】経済産業省\n九州経済産業局が、九州地域の防災・減災・国土強靱化関連産業の市場形成やビジネスモデル構築に向けた調査分析を委託する案件です。提案書の技術審査と入札価格を合わせて評価する総合評価落札方式で、オン…\n締切10/30(金)\n#入札 #公募 #調査業務",
+  "source_url": "https://www.p-portal.go.jp/pps-web-biz/UAA01/OAA0101",
+  "deadline": "2026-10-30",
+  "fact_check": {
+   "ok": true,
+   "issues": []
+  }
+ }
+]
