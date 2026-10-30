@@ -147,16 +147,16 @@ class FactChecker:
 def oauth_header(method: str, url: str) -> str:
     """OAuth 1.0a の署名付きヘッダ（JSON本文は署名対象外）。"""
     params = {
-        "oauth_consumer_key": os.environ["X_API_KEY"],
+        "oauth_consumer_key": os.environ["X_API_KEY"].strip(),
         "oauth_nonce": secrets.token_hex(16),
         "oauth_signature_method": "HMAC-SHA1",
         "oauth_timestamp": str(int(time.time())),
-        "oauth_token": os.environ["X_ACCESS_TOKEN"],
+        "oauth_token": os.environ["X_ACCESS_TOKEN"].strip(),
         "oauth_version": "1.0",
     }
     q = lambda s: urllib.parse.quote(s, safe="")
     base = "&".join([method, q(url), q("&".join(f"{q(k)}={q(v)}" for k, v in sorted(params.items())))])
-    key = f"{q(os.environ['X_API_SECRET'])}&{q(os.environ['X_ACCESS_TOKEN_SECRET'])}"
+    key = f"{q(os.environ['X_API_SECRET'].strip())}&{q(os.environ['X_ACCESS_TOKEN_SECRET'].strip())}"
     params["oauth_signature"] = base64.b64encode(hmac.new(key.encode(), base.encode(), hashlib.sha1).digest()).decode()
     return "OAuth " + ", ".join(f'{q(k)}="{q(v)}"' for k, v in sorted(params.items()))
 
@@ -180,7 +180,25 @@ def verify() -> None:
         print(f"認証OK: @{me['username']}（{me['name']}）", file=sys.stderr)
     except urllib.error.HTTPError as e:
         print(f"認証NG: HTTP {e.code} {e.read().decode()[:300]}", file=sys.stderr)
+        print(f"  X側の時刻: {e.headers.get('date')} / こちらの時刻: {time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime())}",
+              file=sys.stderr)
+        diagnose()
         raise SystemExit(1)
+
+
+def diagnose() -> None:
+    """鍵の値そのものは出さずに、形の異常（空白・長さ・トークンの持ち主）と旧APIの詳しいエラーを表示する。"""
+    for name in ("X_API_KEY", "X_API_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_TOKEN_SECRET"):
+        raw = os.environ.get(name, "")
+        print(f"  {name}: 長さ{len(raw.strip())} 前後の空白{'あり' if raw != raw.strip() else 'なし'}", file=sys.stderr)
+    print(f"  アクセストークンの持ち主ID: {os.environ.get('X_ACCESS_TOKEN', '').split('-')[0]}", file=sys.stderr)
+    url = "https://api.x.com/1.1/account/verify_credentials.json"
+    req = urllib.request.Request(url, headers={"Authorization": oauth_header("GET", url)})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            print(f"  旧API: 認証OK @{json.loads(r.read())['screen_name']}", file=sys.stderr)
+    except urllib.error.HTTPError as e:
+        print(f"  旧API: HTTP {e.code} {e.read().decode()[:300]}", file=sys.stderr)
 
 
 def main(mode: str) -> None:
